@@ -52,6 +52,26 @@ def discount_stack(
     return cache_mult * batch_mult
 
 
+def cache_is_worth_it(
+    avg_cache_reads: float,
+    write_cost_per_m: float = 0.0,
+    read_discount: float = 0.10,
+) -> bool:
+    """Return whether prompt caching pays back its write/storage overhead.
+
+    The avoided cost per cached read is ``1 - read_discount`` of normal input
+    price. Caching is worthwhile once repeated reads recover any extra write
+    cost. With no write overhead, any repeated read is beneficial.
+    """
+    avg_cache_reads = max(0.0, avg_cache_reads)
+    write_cost_per_m = max(0.0, write_cost_per_m)
+    savings_per_read = max(0.0, 1.0 - read_discount)
+    if savings_per_read == 0.0:
+        return False
+    break_even_reads = write_cost_per_m / savings_per_read
+    return avg_cache_reads > break_even_reads
+
+
 def break_even_utilization(discount_frac: float) -> float:
     """Utilization at which a commitment pays off ~= 1 - discount.
 

@@ -3,7 +3,10 @@ from __future__ import annotations
 
 
 def build_report(baseline_usd: float, optimized_usd: float, levers: dict,
-                 sustainability: dict | None = None, period: str = "monthly") -> str:
+                 sustainability: dict | None = None, period: str = "monthly",
+                 extensions: list[dict] | None = None,
+                 unit_economics: dict | None = None,
+                 efficiency: dict | None = None) -> str:
     """Return a markdown cost-optimization report."""
     savings = baseline_usd - optimized_usd
     pct = (savings / baseline_usd * 100.0) if baseline_usd > 0 else 0.0
@@ -14,6 +17,14 @@ def build_report(baseline_usd: float, optimized_usd: float, levers: dict,
         f"**Baseline spend:** ${baseline_usd:,.0f}  ",
         f"**Optimized spend:** ${optimized_usd:,.0f}  ",
         f"**Projected savings:** ${savings:,.0f}  (**{pct:.0f}%**)",
+    ]
+    if unit_economics:
+        lines += [
+            f"**Baseline inference unit cost:** ${unit_economics.get('baseline_per_m', 0):.3f}/1M-token  ",
+            f"**Optimized inference unit cost:** ${unit_economics.get('optimized_per_m', 0):.3f}/1M-token  ",
+            f"**Inference unit-cost reduction:** {unit_economics.get('savings_pct', 0):.1f}%",
+        ]
+    lines += [
         "",
         "## Savings by lever",
         "",
@@ -22,6 +33,15 @@ def build_report(baseline_usd: float, optimized_usd: float, levers: dict,
     ]
     for name, amount in levers.items():
         lines.append(f"| {name} | ${amount:,.0f} |")
+    if efficiency:
+        lines += [
+            "",
+            "## Efficiency Findings",
+            "",
+            f"- GPU-Util lie flagged: {efficiency.get('lie_summary', 'n/a')}",
+            "- GPU-Util shows that clocks are busy, not that paid FLOPs are turning into useful model work.",
+            f"- Idle waste found: ${efficiency.get('idle_waste_daily', 0):,.0f}/day, or ${efficiency.get('idle_waste_monthly', 0):,.0f}/month.",
+        ]
     if sustainability:
         lines += [
             "",
@@ -31,6 +51,13 @@ def build_report(baseline_usd: float, optimized_usd: float, levers: dict,
             f"- Carbon per query: {sustainability.get('carbon_g', 0):.3f} gCO2e",
             f"- Cheapest+cleanest region: {sustainability.get('best_region', 'n/a')}",
         ]
+    if extensions:
+        lines += ["", "## Your Turn Extensions", ""]
+        for item in extensions:
+            lines.append(f"### {item.get('name', 'Extension')}")
+            for point in item.get("points", []):
+                lines.append(f"- {point}")
+            lines.append("")
     lines += ["", "_Figures are June-2026 as-of snapshots; re-baseline before acting._"]
     return "\n".join(lines)
 

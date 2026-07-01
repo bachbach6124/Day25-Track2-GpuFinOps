@@ -28,6 +28,12 @@ def test_request_cost_and_cache():
     assert abs(batched - full * 0.5) < 1e-9    # batch = -50%
 
 
+def test_cache_is_worth_it():
+    assert pricing.cache_is_worth_it(0.32, write_cost_per_m=0.05, read_discount=0.10)
+    assert not pricing.cache_is_worth_it(0.01, write_cost_per_m=0.05, read_discount=0.10)
+    assert not pricing.cache_is_worth_it(10, read_discount=1.0)
+
+
 def test_spot_checkpoint_saves():
     res = pricing.spot_checkpoint_cost(100, 1.5, 2.5)
     assert res["spot_cost"] < res["on_demand_cost"]
